@@ -15,6 +15,7 @@ public class ControleDeAcesso {
 
     // Caminho para o arquivo bancoDeDados.txt e para a pasta imagens
     private static final File arquivoBancoDeDados = new File(pastaControleDeAcesso, "bancoDeDados.txt");
+    private static final File arquivoRegistroDeAcesso = new File(pastaControleDeAcesso, "registroDeAcesso.txt");
     public static final File pastaImagens = new File(pastaControleDeAcesso, "imagens");
 
     static String[] cabecalho = {"ID", "IdAcesso", "Nome", "Telefone", "Email", "Imagem"};
@@ -37,6 +38,7 @@ public class ControleDeAcesso {
     public static void main(String[] args) {
         verificarEstruturaDeDiretorios();
         carregarDadosDoArquivo();
+        carregarRegistroDeAcesso();
         conexaoMQTT = new CLienteMQTT(brokerUrl, topico, ControleDeAcesso::processarMensagemMQTTRecebida);
         servidorHTTPS = new ServidorHTTPS(); // Inicia o servidor HTTPS
         menuPrincipal();
@@ -60,7 +62,9 @@ public class ControleDeAcesso {
                     |       3- Atualizar cadastro por id                    |
                     |       4- Deletar um cadastro por id                   |
                     |       5- Associar TAG ou cartão de acesso ao usuário  |
-                    |       6- Sair                                         |
+                    |       6- Pesquisar registros de um usuário por ID     |
+                    |       7- Deletar registros de acesso                  |
+                    |       8- Sair                                         |
                     _________________________________________________________
                     """;
             System.out.println(menu);
@@ -84,13 +88,19 @@ public class ControleDeAcesso {
                     aguardarCadastroDeIdAcesso();
                     break;
                 case 6:
+                    pesquisarRegistrosUsuario();
+                    break;
+                case 7:
+                    deletarRegistroDeAcesso();
+                    break;
+                case 8:
                     System.out.println("Fim do programa!");
                     break;
                 default:
                     System.out.println("Opção inválida!");
             }
 
-        } while (opcao != 6);
+        } while (opcao != 8);
     }
 
     private static void aguardarCadastroDeIdAcesso() {
@@ -159,6 +169,8 @@ public class ControleDeAcesso {
         if (!usuarioEncontrado) {
             System.out.println("Id de Acesso " + idAcessoRecebido + " não cadastrado.");
         }
+
+        salvarRegistroDeAcesso();
     }
 
     private static void cadastrarNovoIdAcesso(String novoIdAcesso) {
@@ -310,9 +322,44 @@ public class ControleDeAcesso {
         matrizCadastro[0] = cabecalho;
     }
 
+    private static void carregarRegistroDeAcesso() {
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(arquivoRegistroDeAcesso))) {
+            String linha;
+            StringBuilder conteudo = new StringBuilder();
+
+            while ((linha = reader.readLine()) != null) {
+                if (!linha.trim().isEmpty()) {
+                    conteudo.append(linha).append("\n");
+                }
+            }
+
+            if (!conteudo.toString().trim().isEmpty()) {
+                String[] linhasDaTabela = conteudo.toString().split("\n");
+                matrizRegistrosDeAcesso = new String[linhasDaTabela.length][matrizRegistrosDeAcesso[0].length];
+                for (int i = 0; i < linhasDaTabela.length; i++) {
+                    matrizRegistrosDeAcesso[i] = linhasDaTabela[i].split(",");
+                }
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void salvarDadosNoArquivo() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(arquivoBancoDeDados))) {
             for (String[] linha : matrizCadastro) {
+                writer.write(String.join(",", linha) + "\n");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void salvarRegistroDeAcesso() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(arquivoRegistroDeAcesso))) {
+            for (String[] linha : matrizRegistrosDeAcesso) {
                 writer.write(String.join(",", linha) + "\n");
             }
         } catch (IOException e) {
@@ -343,6 +390,18 @@ public class ControleDeAcesso {
             }
         }
 
+        if (!arquivoRegistroDeAcesso.exists()) {
+            try {
+                if (arquivoRegistroDeAcesso.createNewFile()) {
+                    System.out.println("Arquivo registroDeAcesso.txt criado com sucesso.");
+                } else {
+                    System.out.println("Falha ao criar o arquivo registroDeAcesso.txt.");
+                }
+            } catch (IOException e) {
+                System.out.println("Erro ao criar arquivo registroDeAcesso.txt: " + e.getMessage());
+            }
+        }
+
         // Verifica se a pasta imagens existe, caso contrário, cria
         if (!pastaImagens.exists()) {
             if (pastaImagens.mkdir()) {
@@ -351,5 +410,38 @@ public class ControleDeAcesso {
                 System.out.println("Falha ao criar a pasta imagens.");
             }
         }
+    }
+
+    private static void pesquisarRegistrosUsuario() {
+
+        exibirCadastro();
+        System.out.println("Escolha um id para pesquisar os registros:");
+        int idUsuario = scanner.nextInt();
+        scanner.nextLine();
+        StringBuilder tabelaRegistrosUsuario = new StringBuilder();
+
+        for (String[] strings : matrizRegistrosDeAcesso) {
+            if (matrizCadastro[idUsuario][2].equals(strings[0])) {
+                for (String[] usuarioLinha : matrizRegistrosDeAcesso) {
+                    for (int colunas = 0; colunas < matrizRegistrosDeAcesso[0].length; colunas++) {
+                        //int largura = colunas < 2 ? (colunas == 0 ? 4 : 8) : 25;
+                        //tabelaRegistrosUsuario.append(String.format("%-" + largura + "s | ", usuarioLinha[colunas]));
+                        tabelaRegistrosUsuario.append(usuarioLinha[colunas]);
+                    }
+                    tabelaRegistrosUsuario.append("\n");
+                }
+            }
+        }
+        System.out.println(tabelaRegistrosUsuario);
+
+    }
+
+    public static void deletarRegistroDeAcesso() {
+
+        matrizRegistrosDeAcesso = new String[][]{{"","",""}};
+
+        System.out.println("Registros de acesso deletados com sucesso!");
+
+        salvarRegistroDeAcesso();
     }
 }
