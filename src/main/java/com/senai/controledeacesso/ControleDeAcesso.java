@@ -415,24 +415,33 @@ public class ControleDeAcesso {
     private static void pesquisarRegistrosUsuario() {
 
         exibirCadastro();
-        System.out.println("Escolha um id para pesquisar os registros:");
-        int idUsuario = scanner.nextInt();
         scanner.nextLine();
+        System.out.println("Escolha um id para pesquisar os registros:");
+        String idUsuario = scanner.nextLine();
+        String nomeUsuario = "";
         StringBuilder tabelaRegistrosUsuario = new StringBuilder();
 
-        for (String[] strings : matrizRegistrosDeAcesso) {
-            if (matrizCadastro[idUsuario][2].equals(strings[0])) {
-                for (String[] usuarioLinha : matrizRegistrosDeAcesso) {
-                    for (int colunas = 0; colunas < matrizRegistrosDeAcesso[0].length; colunas++) {
-                        //int largura = colunas < 2 ? (colunas == 0 ? 4 : 8) : 25;
-                        //tabelaRegistrosUsuario.append(String.format("%-" + largura + "s | ", usuarioLinha[colunas]));
-                        tabelaRegistrosUsuario.append(usuarioLinha[colunas]);
-                    }
-                    tabelaRegistrosUsuario.append("\n");
-                }
+        for (String[] linhaCadastro : matrizCadastro) {
+            if (linhaCadastro[0].equals(idUsuario)) {
+                nomeUsuario = linhaCadastro[2];
+                break;
             }
         }
+
+        for (String[] linhaRegistro : matrizRegistrosDeAcesso) {
+            if (linhaRegistro[2].equals(nomeUsuario)) {
+                for (String colunaRegistro : linhaRegistro) {
+                    tabelaRegistrosUsuario.append(colunaRegistro);
+                }
+                tabelaRegistrosUsuario.append("\n");
+            }
+        }
+
         System.out.println(tabelaRegistrosUsuario);
+
+
+        //int largura = colunas < 2 ? (colunas == 0 ? 4 : 8) : 25; - Tamanho da coluna
+        //tabelaRegistrosUsuario.append(String.format("%-" + largura + "s | ", usuarioLinha[colunas]));
 
     }
 
