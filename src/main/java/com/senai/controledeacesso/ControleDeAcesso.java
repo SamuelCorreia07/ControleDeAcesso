@@ -415,7 +415,6 @@ public class ControleDeAcesso {
     private static void pesquisarRegistrosUsuario() {
 
         exibirCadastro();
-        scanner.nextLine();
         System.out.println("Escolha um id para pesquisar os registros:");
         String idUsuario = scanner.nextLine();
         String nomeUsuario = "";
@@ -429,9 +428,10 @@ public class ControleDeAcesso {
         }
 
         for (String[] linhaRegistro : matrizRegistrosDeAcesso) {
-            if (linhaRegistro[2].equals(nomeUsuario)) {
-                for (String colunaRegistro : linhaRegistro) {
-                    tabelaRegistrosUsuario.append(colunaRegistro);
+            if (linhaRegistro[0].equals(nomeUsuario)) {
+                for (int colunaRegistro = 0; colunaRegistro < matrizRegistrosDeAcesso[0].length; colunaRegistro++) {
+                    int largura = colunaRegistro > 0 ? (colunaRegistro == 1 ? 9 : 2) : 25;
+                    tabelaRegistrosUsuario.append(String.format("%-" + largura + "s | ", linhaRegistro[colunaRegistro]));
                 }
                 tabelaRegistrosUsuario.append("\n");
             }
@@ -440,8 +440,7 @@ public class ControleDeAcesso {
         System.out.println(tabelaRegistrosUsuario);
 
 
-        //int largura = colunas < 2 ? (colunas == 0 ? 4 : 8) : 25; - Tamanho da coluna
-        //tabelaRegistrosUsuario.append(String.format("%-" + largura + "s | ", usuarioLinha[colunas]));
+
 
     }
 
